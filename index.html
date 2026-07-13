@@ -30,7 +30,6 @@
           </button>
         </nav>
 
-        <p class="sync-status" id="sync-status" data-mode="local">检查同步状态…</p>
       </aside>
 
       <main class="main-panel">
@@ -51,7 +50,7 @@
           <section class="section calendar-section">
             <div class="section-head">
               <h2>行事历</h2>
-              <p>标记各自出去玩、健身，或者其他小事。</p>
+              <p>标记出去玩、健身，或你们自己创建的类型。</p>
             </div>
             <div class="calendar-layout">
               <div class="calendar-panel">
@@ -72,34 +71,56 @@
               </div>
 
               <div class="calendar-side">
-                <div class="calendar-selected">
-                  <h3 id="selected-label"></h3>
-                  <p class="muted">点选日期后，给这一天做个标记。</p>
-                </div>
+                <div class="day-composer">
+                  <div class="day-composer-head">
+                    <h3 id="selected-label"></h3>
+                    <p class="muted">选好日期，点一下就能记下来。</p>
+                  </div>
 
-                <form class="status-editor" id="event-form">
-                  <label>
-                    谁
-                    <select name="who" id="event-who">
-                      <option value="A">阿杨</option>
-                      <option value="B">阿冯</option>
-                      <option value="both">一起</option>
-                    </select>
-                  </label>
-                  <label>
-                    类型
-                    <select name="kind" id="event-kind">
-                      <option value="play">出去玩</option>
-                      <option value="gym">健身</option>
-                      <option value="other">其他</option>
-                    </select>
-                  </label>
-                  <label>
-                    备注（可选）
-                    <input id="event-note" type="text" placeholder="例如：夜跑 / 爬山" />
-                  </label>
-                  <button type="submit" class="btn">标记这一天</button>
-                </form>
+                  <form id="event-form" class="day-composer-form">
+                    <input type="hidden" name="who" id="event-who" value="A" />
+                    <input type="hidden" name="kind" id="event-kind" value="play" />
+
+                    <div class="composer-field">
+                      <span class="composer-label">谁</span>
+                      <div class="chip-row" id="who-chips" role="group" aria-label="选择谁">
+                        <button type="button" class="chip is-active" data-who="A">阿杨</button>
+                        <button type="button" class="chip" data-who="B">阿冯</button>
+                        <button type="button" class="chip" data-who="both">一起</button>
+                      </div>
+                    </div>
+
+                    <div class="composer-field">
+                      <div class="composer-label-row">
+                        <span class="composer-label">类型</span>
+                        <button type="button" class="text-action" id="toggle-kind-form">
+                          + 自定义
+                        </button>
+                      </div>
+                      <div class="chip-row" id="kind-chips" role="group" aria-label="选择类型"></div>
+                      <div class="kind-create" id="kind-create" hidden>
+                        <input
+                          id="new-kind-label"
+                          type="text"
+                          maxlength="12"
+                          placeholder="例如：看电影"
+                          autocomplete="off"
+                        />
+                        <button type="button" class="btn btn-compact" id="add-kind-btn">添加</button>
+                      </div>
+                    </div>
+
+                    <div class="composer-footer">
+                      <input
+                        id="event-note"
+                        type="text"
+                        placeholder="备注（可选），例如夜跑"
+                        autocomplete="off"
+                      />
+                      <button type="submit" class="btn btn-compact">标记</button>
+                    </div>
+                  </form>
+                </div>
 
                 <div class="event-list-wrap">
                   <h3>这一天</h3>
