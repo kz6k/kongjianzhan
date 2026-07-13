@@ -1,10 +1,15 @@
 const STORAGE_KEY = 'space-station-html-v1'
 const PERSON = { A: '阿杨', B: '阿冯' }
-const KIND_LABEL = { play: '出去玩', gym: '健身', other: '其他' }
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六']
+const DEFAULT_KINDS = [
+  { id: 'play', label: '出去玩', builtin: true },
+  { id: 'gym', label: '健身', builtin: true },
+  { id: 'other', label: '游泳', builtin: true },
+]
 
 const defaultState = {
   events: [],
+  kinds: structuredClone(DEFAULT_KINDS),
   savings: {
     goal: 5000,
     goalLabel: '一起去看海',
@@ -17,6 +22,39 @@ let roomRef = null
 let applyingRemote = false
 let syncMode = 'local' // local | cloud | error
 
+function normalizeKinds(input) {
+  const list = Array.isArray(input) ? input : []
+  const cleaned = list
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const id = String(item.id || '').trim()
+      const label = String(item.label || '').trim()
+      if (!id || !label) return null
+      return {
+        id,
+        label: label.slice(0, 12),
+        builtin: Boolean(item.builtin),
+      }
+    })
+    .filter(Boolean)
+
+  if (cleaned.length === 0) return structuredClone(DEFAULT_KINDS)
+
+  const seen = new Set()
+  const unique = cleaned.filter((kind) => {
+    if (seen.has(kind.id)) return false
+    seen.add(kind.id)
+    return true
+  })
+
+  // 内置类型文案以代码为准（例如「其他」→「游泳」）
+  return unique.map((kind) => {
+    const builtin = DEFAULT_KINDS.find((d) => d.id === kind.id)
+    if (!builtin) return kind
+    return { ...kind, label: builtin.label, builtin: true }
+  })
+}
+
 function loadLocalState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -24,6 +62,7 @@ function loadLocalState() {
     const parsed = JSON.parse(raw)
     return {
       events: parsed.events || [],
+      kinds: normalizeKinds(parsed.kinds),
       savings: {
         ...defaultState.savings,
         ...(parsed.savings || {}),
@@ -39,6 +78,7 @@ function normalizeState(input) {
   const raw = input || {}
   return {
     events: Array.isArray(raw.events) ? raw.events : [],
+    kinds: normalizeKinds(raw.kinds),
     savings: {
       goal: Number(raw.savings && raw.savings.goal) || defaultState.savings.goal,
       goalLabel:
@@ -85,6 +125,7 @@ function applyState(next, fromRemote) {
 
 function renderAll() {
   renderTogether()
+  renderKindChips()
   renderCalendar()
   renderSavings()
 }
@@ -180,6 +221,63 @@ function whoLabel(who) {
   return '一起'
 }
 
+function kindLabel(kindId) {
+  const found = state.kinds.find((k) => k.id === kindId)
+  if (found) return found.label
+  const legacy = { play: '出去玩', gym: '健身', other: '游泳' }
+  return legacy[kindId] || kindId || '游泳'
+}
+
+function ensureSelectedKind() {
+  const input = document.getElementById('event-kind')
+  if (!input) return
+  if (!state.kinds.some((k) => k.id === input.value)) {
+    input.value = state.kinds[0] ? state.kinds[0].id : 'other'
+  }
+}
+
+function renderKindChips() {
+  const row = document.getElementById('kind-chips')
+  const kindInput = document.getElementById('event-kind')
+  if (!row || !kindInput) return
+
+  ensureSelectedKind()
+  const selected = kindInput.value
+
+  row.innerHTML = state.kinds
+    .map((kind) => {
+      const active = kind.id === selected ? ' is-active' : ''
+      const remove = kind.builtin
+        ? ''
+        : `<button type="button" class="chip-remove" data-remove-kind="${kind.id}" aria-label="删除 ${kind.label}">×</button>`
+      return `<div class="chip-wrap">
+        <button type="button" class="chip${active}" data-kind="${kind.id}">${kind.label}</button>
+        ${remove}
+      </div>`
+    })
+    .join('')
+
+  row.querySelectorAll('[data-kind]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      kindInput.value = btn.getAttribute('data-kind')
+      renderKindChips()
+    })
+  })
+
+  row.querySelectorAll('[data-remove-kind]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      const id = btn.getAttribute('data-remove-kind')
+      state.kinds = state.kinds.filter((k) => k.id !== id)
+      if (kindInput.value === id) {
+        kindInput.value = state.kinds[0] ? state.kinds[0].id : 'other'
+      }
+      saveState()
+      renderKindChips()
+    })
+  })
+}
+
 function renderTogether() {
   const start = new Date(2023, 5, 24)
   const now = new Date()
@@ -264,20 +362,19 @@ function renderSelectedDay() {
   }
 
   list.innerHTML = `<ul class="event-list">${dayEvents
-    .map(
-      (event) => `
+    .map((event) => {
+      const label = kindLabel(event.kind)
+      const note =
+        event.note && event.note !== label ? ` · ${event.note}` : ''
+      return `
       <li>
         <div>
           <strong class="who-${event.who}">${whoLabel(event.who)}</strong>
-          <span>${KIND_LABEL[event.kind]}${
-            event.note && event.note !== KIND_LABEL[event.kind]
-              ? ` · ${event.note}`
-              : ''
-          }</span>
+          <span class="event-kind-tag">${label}</span>${note ? `<span>${note}</span>` : ''}
         </div>
         <button type="button" class="linkish" data-remove="${event.id}">删除</button>
-      </li>`,
-    )
+      </li>`
+    })
     .join('')}</ul>`
 
   list.querySelectorAll('[data-remove]').forEach((btn) => {
@@ -353,6 +450,15 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function slugifyKind(label) {
+  const base = label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\u4e00-\u9fff-]/g, '')
+  return `custom-${base || 'kind'}-${Math.random().toString(16).slice(2, 6)}`
+}
+
 document.querySelectorAll('.sidebar-link').forEach((link) => {
   link.addEventListener('click', () => showPage(link.getAttribute('data-page')))
 })
@@ -372,17 +478,60 @@ document.getElementById('next-month').addEventListener('click', () => {
   renderCalendar()
 })
 
+document.getElementById('who-chips').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-who]')
+  if (!btn) return
+  document.getElementById('event-who').value = btn.getAttribute('data-who')
+  document.querySelectorAll('#who-chips .chip').forEach((chip) => {
+    chip.classList.toggle('is-active', chip === btn)
+  })
+})
+
+document.getElementById('toggle-kind-form').addEventListener('click', () => {
+  const panel = document.getElementById('kind-create')
+  const open = panel.hidden
+  panel.hidden = !open
+  if (open) {
+    document.getElementById('new-kind-label').focus()
+  }
+})
+
+document.getElementById('add-kind-btn').addEventListener('click', () => {
+  const input = document.getElementById('new-kind-label')
+  const label = input.value.trim().slice(0, 12)
+  if (!label) return
+  if (state.kinds.some((k) => k.label === label)) {
+    input.value = ''
+    return
+  }
+  const kind = { id: slugifyKind(label), label, builtin: false }
+  state.kinds.push(kind)
+  document.getElementById('event-kind').value = kind.id
+  input.value = ''
+  document.getElementById('kind-create').hidden = true
+  saveState()
+  renderKindChips()
+})
+
+document.getElementById('new-kind-label').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    document.getElementById('add-kind-btn').click()
+  }
+})
+
 document.getElementById('event-form').addEventListener('submit', (e) => {
   e.preventDefault()
   const who = document.getElementById('event-who').value
   const kind = document.getElementById('event-kind').value
   const note = document.getElementById('event-note').value.trim()
+  const label = kindLabel(kind)
   state.events.unshift({
     id: uid(),
     date: toKey(selectedDate),
     who,
     kind,
-    note: note || KIND_LABEL[kind],
+    note: note || label,
   })
   document.getElementById('event-note').value = ''
   saveState()
