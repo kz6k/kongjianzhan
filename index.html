@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>空间站</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <p class="sidebar-brand-name">空间站</p>
+          <p class="sidebar-pair">阿杨 & 阿冯</p>
+        </div>
+        <nav class="sidebar-nav" aria-label="功能导航">
+          <button type="button" class="sidebar-link is-active" data-page="home">
+            <span class="sidebar-link-label">首页</span>
+            <span class="sidebar-link-hint">日历</span>
+          </button>
+          <button type="button" class="sidebar-link" data-page="savings">
+            <span class="sidebar-link-label">攒钱</span>
+            <span class="sidebar-link-hint">小目标</span>
+          </button>
+        </nav>
+        <p class="sidebar-foot">只属于你们两个人的角落</p>
+        <p class="sync-status" id="sync-status" data-mode="local">检查同步状态…</p>
+      </aside>
+
+      <main class="main-panel">
+        <section id="page-home" class="page">
+          <section class="together-hero">
+            <div class="together-hero-glow" aria-hidden="true"></div>
+            <div class="together-hero-content">
+              <p class="together-brand">空间站</p>
+              <h1 class="together-title">
+                阿杨<span class="together-amp">&</span>阿冯
+              </h1>
+              <p class="together-lead">I have the rest of my life to find out</p>
+              <div class="together-clock" id="together-clock"></div>
+              <p class="together-total" id="together-total"></p>
+            </div>
+          </section>
+
+          <section class="section calendar-section">
+            <div class="section-head">
+              <h2>行事历</h2>
+              <p>标记各自出去玩、健身，或者其他小事。</p>
+            </div>
+            <div class="calendar-layout">
+              <div class="calendar-panel">
+                <div class="calendar-toolbar">
+                  <button type="button" class="btn btn-ghost" id="prev-month">上月</button>
+                  <h3 id="month-label"></h3>
+                  <button type="button" class="btn btn-ghost" id="next-month">下月</button>
+                </div>
+                <div class="calendar-weekdays">
+                  <span>一</span><span>二</span><span>三</span><span>四</span>
+                  <span>五</span><span>六</span><span>日</span>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+                <div class="calendar-legend">
+                  <span><i class="dot a"></i> 阿杨</span>
+                  <span><i class="dot b"></i> 阿冯</span>
+                </div>
+              </div>
+
+              <div class="calendar-side">
+                <div class="calendar-selected">
+                  <h3 id="selected-label"></h3>
+                  <p class="muted">点选日期后，给这一天做个标记。</p>
+                </div>
+
+                <form class="status-editor" id="event-form">
+                  <label>
+                    谁
+                    <select name="who" id="event-who">
+                      <option value="A">阿杨</option>
+                      <option value="B">阿冯</option>
+                      <option value="both">一起</option>
+                    </select>
+                  </label>
+                  <label>
+                    类型
+                    <select name="kind" id="event-kind">
+                      <option value="play">出去玩</option>
+                      <option value="gym">健身</option>
+                      <option value="other">其他</option>
+                    </select>
+                  </label>
+                  <label>
+                    备注（可选）
+                    <input id="event-note" type="text" placeholder="例如：夜跑 / 爬山" />
+                  </label>
+                  <button type="submit" class="btn">标记这一天</button>
+                </form>
+
+                <div class="event-list-wrap">
+                  <h3>这一天</h3>
+                  <div id="event-list"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section peek-section">
+            <a href="#" class="peek-item" id="go-savings">
+              <h3>攒钱进度</h3>
+              <p id="savings-peek"></p>
+            </a>
+          </section>
+        </section>
+
+        <section id="page-savings" class="page" hidden>
+          <header class="page-head">
+            <h1>攒钱</h1>
+            <p>为一次旅行、一顿晚餐，或任何你们想一起做的事。</p>
+          </header>
+
+          <section class="savings-hero">
+            <p class="savings-label" id="goal-label-view"></p>
+            <p class="savings-amount" id="savings-amount-view"></p>
+            <div class="meter-track large">
+              <div class="meter-fill savings" id="savings-bar"></div>
+            </div>
+            <p class="muted" id="savings-progress-text"></p>
+          </section>
+
+          <div class="savings-layout">
+            <form class="status-editor" id="add-savings-form">
+              <h2>记一笔</h2>
+              <label>
+                金额
+                <input name="amount" type="number" min="1" step="1" placeholder="例如 50" required />
+              </label>
+              <label>
+                备注
+                <input name="note" type="text" placeholder="少喝一杯奶茶" />
+              </label>
+              <label>
+                谁攒的
+                <select name="by">
+                  <option value="both">一起</option>
+                  <option value="A">阿杨</option>
+                  <option value="B">阿冯</option>
+                </select>
+              </label>
+              <button type="submit" class="btn">加入存钱罐</button>
+            </form>
+
+            <form class="status-editor" id="goal-form">
+              <h2>目标设置</h2>
+              <label>
+                目标名称
+                <input name="goalLabel" id="goal-label-input" />
+              </label>
+              <label>
+                目标金额
+                <input name="goal" id="goal-amount-input" type="number" min="1" />
+              </label>
+              <button type="submit" class="btn btn-ghost">更新目标</button>
+            </form>
+          </div>
+
+          <section class="section">
+            <div class="section-head">
+              <h2>攒钱记录</h2>
+            </div>
+            <div id="savings-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
